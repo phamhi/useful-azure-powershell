@@ -9,4 +9,5 @@ function Get-AzVmInventory {
         [string]$ResourceGroupName
     )
     Write-Output "Querying Azure Virtual Machines inventory on dev branch..."
+    Write-Output "Incremental change test: $(Get-Date)"
 }
