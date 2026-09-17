@@ -1,177 +1,164 @@
-# Useful Azure PowerShell Scripts
+# Useful Azure PowerShell scripts
 
-A curated collection of 25 enterprise-grade, production-ready PowerShell automation and governance scripts for Microsoft Azure. Built using the modern Azure PowerShell (`Az`) module and Azure Resource Graph (`Search-AzGraph`), these scripts provide platform engineers, cloud architects, and SecOps teams with advanced tooling for cost optimization, security auditing, networking diagnostics, compute management, and governance.
+A repository of 25 Azure PowerShell automation and governance scripts for infrastructure operations, cost management, security audits, and diagnostics.
 
----
+## Table of contents
+- [Overview](#overview)
+- [Design conventions](#design-conventions)
+- [Repository layout](#repository-layout)
+- [Script catalog](#script-catalog)
+  - [Cost optimization](#1-cost-optimization)
+  - [Security and governance](#2-security-and-governance)
+  - [Networking](#3-networking)
+  - [Compute](#4-compute)
+  - [Monitoring and backup](#5-monitoring-and-backup)
+  - [Storage and databases](#6-storage-and-databases)
+  - [Platform operations](#7-platform-operations)
+- [Prerequisites and setup](#prerequisites-and-setup)
+- [Quick start](#quick-start)
+- [License](#license)
 
-## Key Features & Design Standards
+## Overview
 
-Unlike basic one-liner wrappers, every script in this repository adheres to enterprise platform engineering standards:
+This repository contains PowerShell scripts that use the `Az` module and Azure Resource Graph (`Search-AzGraph`) to automate routine operational tasks across Azure subscriptions. The scripts target common infrastructure needs such as reclaiming unused resources, checking security baselines, troubleshooting network routing, assessing patch status, and managing resource locks.
 
-- **Safety by Default**: Non-read-only scripts implement `[CmdletBinding(SupportsShouldProcess = $true)]` supporting `-WhatIf` (dry-run simulation) and `-Confirm` prompting before making changes.
-- **Multi-Subscription & Tenant Scale**: Supports scanning across all active subscriptions or filtering by specific subscription IDs using high-speed Azure Resource Graph queries.
-- **Structured Error Handling**: Comprehensive `try/catch` error blocks with terminating and non-terminating controls (`-ErrorAction Stop`).
-- **Pipeline & Automation Ready**: Accepts pipeline input (`ValueFromPipeline = $true`), returns structured `[PSCustomObject]` pipelines, and supports optional `-ExportCsvPath` and `-ExportHtmlPath` exports.
-- **Comment-Based Help**: Complete documentation for every script including `.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER`, `.EXAMPLE`, required Az sub-modules, and RBAC permissions.
+## Design conventions
 
----
+- **Safety checks**: Modifying scripts use `[CmdletBinding(SupportsShouldProcess = $true)]`. You can run them with `-WhatIf` to inspect intended changes without altering resources.
+- **Subscription scope**: Scripts accept an optional array of subscription IDs. When omitted, they inspect all active subscriptions in the current context.
+- **Structured output**: Commands return `PSCustomObject` instances for pipeline processing, and most scripts provide `-ExportCsvPath` or `-ExportHtmlPath` parameters.
+- **Error handling**: Operations run inside `try/catch` blocks with explicit error output to prevent silent failures.
+- **Built-in help**: Every script contains standard comment help with parameter definitions and concrete examples.
 
-## Repository Structure
+## Repository layout
+
+Each directory contains a dedicated `README.md` describing its scripts and usage:
 
 ```
 useful-azure-powershell/
-├── CostOptimization/
-│   ├── Find-AzOrphanedResources.ps1
-│   ├── Analyze-AzAppServiceCostEfficiency.ps1
-│   ├── Export-AzSnapshotHygieneReport.ps1
-│   └── Clean-AzStaleResourceGroups.ps1
-├── SecurityAndGovernance/
-│   ├── Audit-AzPrivilegedRoleAssignments.ps1
-│   ├── Find-AzExposedPublicEndpoints.ps1
-│   ├── Test-AzKeyVaultCertificateExpiry.ps1
-│   ├── Audit-AzNetworkSecurityRules.ps1
-│   └── Enforce-AzResourceTaggingPolicy.ps1
-├── Networking/
-│   ├── Export-AzVNetPeeringMatrix.ps1
-│   ├── Test-AzNetworkConnectivityDiagnostics.ps1
-│   ├── Audit-AzPrivateEndpointDNSResolution.ps1
-│   └── Export-AzRouteTableTopology.ps1
-├── Compute/
-│   ├── Invoke-AzVmAutomatedPatchAssessment.ps1
-│   ├── Resize-AzVmWithPreFlightChecks.ps1
-│   ├── Backup-AzVmDiskToStorageAccount.ps1
-│   └── Invoke-AzVmMultiRunCommand.ps1
-├── MonitoringAndBackup/
-│   ├── Deploy-AzDiagnosticSettingsBaseline.ps1
-│   ├── Audit-AzBackupProtectedItems.ps1
-│   └── Export-AzLogAnalyticsQueryAlerts.ps1
-├── StorageAndDatabases/
-│   ├── Audit-AzStorageAccountSecurity.ps1
-│   ├── Export-AzSqlDatabasePerformanceReport.ps1
-│   └── Clean-AzStorageBlobLifecycle.ps1
-└── PlatformOperations/
-    ├── Get-AzSubscriptionInventorySummary.ps1
-    └── Manage-AzResourceLocksBulk.ps1
+├── CostOptimization/         # Unused disks, idle public IPs, empty app plans, stale groups
+├── SecurityAndGovernance/    # Privileged roles, open endpoints, cert expiry, NSG rules, tagging
+├── Networking/               # VNet peering matrix, connectivity checks, private DNS, UDRs
+├── Compute/                  # Patch audits, safe VM resizing, multi-disk backups, run commands
+├── MonitoringAndBackup/      # Diagnostic streaming, backup coverage, alert inventory
+├── StorageAndDatabases/      # Storage security baseline, SQL headroom/TDE, blob tiering
+└── PlatformOperations/       # Resource Graph inventory summary, management lock automation
 ```
 
----
+## Script catalog
 
-## Script Catalog
+### 1. Cost optimization
 
-### 1. Cost Optimization & Waste Reclamation
+Detailed documentation: [CostOptimization/README.md](CostOptimization/README.md)
 
-| Script | Description | Key Modules |
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Find-AzOrphanedResources.ps1`](CostOptimization/Find-AzOrphanedResources.ps1) | Discovers unattached managed disks, orphaned NICs, unallocated public IPs, empty NSGs, and unattached route tables across subscriptions. Generates styled HTML/CSV waste reports with optional `-Delete`. | `Az.ResourceGraph`, `Az.Compute`, `Az.Network` |
-| [`Analyze-AzAppServiceCostEfficiency.ps1`](CostOptimization/Analyze-AzAppServiceCostEfficiency.ps1) | Evaluates App Service Plans hosting 0 apps and queries 7-14 day Azure Monitor metrics to flag oversized, underutilized plans (<15% CPU). | `Az.Websites`, `Az.Monitor` |
-| [`Export-AzSnapshotHygieneReport.ps1`](CostOptimization/Export-AzSnapshotHygieneReport.ps1) | Audits aging managed disk snapshots (>60 days), checks if parent source disks still exist or have been deleted, and estimates waste. | `Az.Compute` |
-| [`Clean-AzStaleResourceGroups.ps1`](CostOptimization/Clean-AzStaleResourceGroups.ps1) | Identifies empty resource groups (0 resources) or groups past their expiration/TTL tags, validates lock status, and assists with retirement. | `Az.Resources` |
+| [`Find-AzOrphanedResources.ps1`](CostOptimization/Find-AzOrphanedResources.ps1) | Finds unattached disks, disconnected NICs, unused public IPs, and empty NSGs. | `Az.ResourceGraph`, `Az.Compute`, `Az.Network` |
+| [`Analyze-AzAppServiceCostEfficiency.ps1`](CostOptimization/Analyze-AzAppServiceCostEfficiency.ps1) | Evaluates CPU and memory metrics on App Service Plans to flag idle or oversized tiers. | `Az.Websites`, `Az.Monitor` |
+| [`Export-AzSnapshotHygieneReport.ps1`](CostOptimization/Export-AzSnapshotHygieneReport.ps1) | Audits aging disk snapshots and checks whether source disks still exist. | `Az.Compute` |
+| [`Clean-AzStaleResourceGroups.ps1`](CostOptimization/Clean-AzStaleResourceGroups.ps1) | Identifies empty groups or groups past their expiration dates. | `Az.Resources` |
 
-### 2. Security, Identity & Governance
+### 2. Security and governance
 
-| Script | Description | Key Modules |
+Detailed documentation: [SecurityAndGovernance/README.md](SecurityAndGovernance/README.md)
+
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Audit-AzPrivilegedRoleAssignments.ps1`](SecurityAndGovernance/Audit-AzPrivilegedRoleAssignments.ps1) | Audits Owner, Contributor, and User Access Administrator assignments across Management Groups/Subscriptions, flagging guest accounts (`#EXT#`) and orphaned identities. | `Az.Resources` |
-| [`Find-AzExposedPublicEndpoints.ps1`](SecurityAndGovernance/Find-AzExposedPublicEndpoints.ps1) | Audits internet-facing exposure across Storage Accounts (blob anonymous access), Key Vaults (firewall bypass), SQL (0.0.0.0/0 rules), App Services, and AKS. | `Az.Storage`, `Az.KeyVault`, `Az.Sql`, `Az.Websites` |
-| [`Test-AzKeyVaultCertificateExpiry.ps1`](SecurityAndGovernance/Test-AzKeyVaultCertificateExpiry.ps1) | Scans Key Vaults for SSL/TLS certificates and secrets expiring within a configurable window (e.g. 30/60 days) and verifies auto-renewal policies. | `Az.KeyVault` |
-| [`Audit-AzNetworkSecurityRules.ps1`](SecurityAndGovernance/Audit-AzNetworkSecurityRules.ps1) | Detects open inbound rules from `*` or `Internet` to high-risk administrative (22, 3389, 5985) and database ports (1433, 3306, 5432). | `Az.Network` |
-| [`Enforce-AzResourceTaggingPolicy.ps1`](SecurityAndGovernance/Enforce-AzResourceTaggingPolicy.ps1) | Validates mandatory tag keys/patterns and remediates non-compliant resources by inheriting tags from parent Resource Groups with audit rollback. | `Az.Resources` |
+| [`Audit-AzPrivilegedRoleAssignments.ps1`](SecurityAndGovernance/Audit-AzPrivilegedRoleAssignments.ps1) | Audits Owner, Contributor, and User Access Admin roles, flagging guest accounts and orphaned IDs. | `Az.Resources` |
+| [`Find-AzExposedPublicEndpoints.ps1`](SecurityAndGovernance/Find-AzExposedPublicEndpoints.ps1) | Checks for internet-accessible storage blobs, open Key Vaults, and unrestricted SQL firewalls. | `Az.Storage`, `Az.KeyVault`, `Az.Sql`, `Az.Websites` |
+| [`Test-AzKeyVaultCertificateExpiry.ps1`](SecurityAndGovernance/Test-AzKeyVaultCertificateExpiry.ps1) | Scans Key Vaults for certificates and secrets expiring within a given window. | `Az.KeyVault` |
+| [`Audit-AzNetworkSecurityRules.ps1`](SecurityAndGovernance/Audit-AzNetworkSecurityRules.ps1) | Flags inbound NSG rules allowing unrestricted internet access to management and database ports. | `Az.Network` |
+| [`Enforce-AzResourceTaggingPolicy.ps1`](SecurityAndGovernance/Enforce-AzResourceTaggingPolicy.ps1) | Validates resource tags and can inherit missing values from parent resource groups. | `Az.Resources` |
 
-### 3. Networking & Hybrid Connectivity
+### 3. Networking
 
-| Script | Description | Key Modules |
+Detailed documentation: [Networking/README.md](Networking/README.md)
+
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Export-AzVNetPeeringMatrix.ps1`](Networking/Export-AzVNetPeeringMatrix.ps1) | Maps global VNet peering topology, validates gateway transit / remote gateway usage, and identifies IPv4 CIDR address space collisions. | `Az.Network` |
-| [`Test-AzNetworkConnectivityDiagnostics.ps1`](Networking/Test-AzNetworkConnectivityDiagnostics.ps1) | Orchestrates Network Watcher connectivity tests, next-hop evaluation, and security group rules to diagnose reachability issues and latency. | `Az.Network`, `Az.Compute` |
-| [`Audit-AzPrivateEndpointDNSResolution.ps1`](Networking/Audit-AzPrivateEndpointDNSResolution.ps1) | Audits Private Endpoints against Private DNS Zones to verify A-record registration, allocated private IPs, and VNet zone links. | `Az.Network`, `Az.PrivateDns` |
-| [`Export-AzRouteTableTopology.ps1`](Networking/Export-AzRouteTableTopology.ps1) | Audits User Defined Routes (UDRs) and effective route tables across subnets, detecting blackholed paths (`None`) and NVA route anomalies. | `Az.Network` |
+| [`Export-AzVNetPeeringMatrix.ps1`](Networking/Export-AzVNetPeeringMatrix.ps1) | Maps peering connections, transit configurations, and overlapping IP ranges. | `Az.Network` |
+| [`Test-AzNetworkConnectivityDiagnostics.ps1`](Networking/Test-AzNetworkConnectivityDiagnostics.ps1) | Evaluates end-to-end VM reachability, next-hop routing, latency, and NSG rules. | `Az.Network`, `Az.Compute` |
+| [`Audit-AzPrivateEndpointDNSResolution.ps1`](Networking/Audit-AzPrivateEndpointDNSResolution.ps1) | Verifies Private Endpoint A-records in Private DNS Zones and confirms VNet links. | `Az.Network`, `Az.PrivateDns` |
+| [`Export-AzRouteTableTopology.ps1`](Networking/Export-AzRouteTableTopology.ps1) | Audits user-defined routes across subnets and locates blackholed traffic paths. | `Az.Network` |
 
-### 4. Compute & Virtual Machine Operations
+### 4. Compute
 
-| Script | Description | Key Modules |
+Detailed documentation: [Compute/README.md](Compute/README.md)
+
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Invoke-AzVmAutomatedPatchAssessment.ps1`](Compute/Invoke-AzVmAutomatedPatchAssessment.ps1) | Evaluates OS patch status via Azure Update Manager, tracking missing Critical/Security updates, reboot states, and compliance grades. | `Az.Compute` |
-| [`Resize-AzVmWithPreFlightChecks.ps1`](Compute/Resize-AzVmWithPreFlightChecks.ps1) | Validates host cluster compatibility, subscription regional core quotas, ephemeral disk limits, and IP reservation safety before resizing VMs. | `Az.Compute`, `Az.Network` |
-| [`Backup-AzVmDiskToStorageAccount.ps1`](Compute/Backup-AzVmDiskToStorageAccount.ps1) | Creates coordinated crash-consistent point-in-time snapshots of all attached OS and data disks, generates SAS URLs, and stages copies to Blob Storage. | `Az.Compute`, `Az.Storage` |
-| [`Invoke-AzVmMultiRunCommand.ps1`](Compute/Invoke-AzVmMultiRunCommand.ps1) | Executes scripts across fleets of Windows or Linux VMs concurrently via `Invoke-AzVMRunCommand`, capturing exit codes and stdout/stderr. | `Az.Compute` |
+| [`Invoke-AzVmAutomatedPatchAssessment.ps1`](Compute/Invoke-AzVmAutomatedPatchAssessment.ps1) | Reviews OS update status, reboot states, and missing critical patches. | `Az.Compute` |
+| [`Resize-AzVmWithPreFlightChecks.ps1`](Compute/Resize-AzVmWithPreFlightChecks.ps1) | Checks cluster size availability, vCPU quota, and disk limits before resizing a VM. | `Az.Compute`, `Az.Network` |
+| [`Backup-AzVmDiskToStorageAccount.ps1`](Compute/Backup-AzVmDiskToStorageAccount.ps1) | Creates point-in-time snapshots of all VM disks and generates access SAS tokens. | `Az.Compute`, `Az.Storage` |
+| [`Invoke-AzVmMultiRunCommand.ps1`](Compute/Invoke-AzVmMultiRunCommand.ps1) | Executes scripts across multiple running VMs in parallel using Run Command. | `Az.Compute` |
 
-### 5. Monitoring, Observability & Backup
+### 5. Monitoring and backup
 
-| Script | Description | Key Modules |
+Detailed documentation: [MonitoringAndBackup/README.md](MonitoringAndBackup/README.md)
+
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Deploy-AzDiagnosticSettingsBaseline.ps1`](MonitoringAndBackup/Deploy-AzDiagnosticSettingsBaseline.ps1) | Audits and configures Azure Monitor diagnostic streaming for Key Vaults, NSGs, and SQL Databases into a central Log Analytics Workspace. | `Az.Monitor`, `Az.Resources` |
-| [`Audit-AzBackupProtectedItems.ps1`](MonitoringAndBackup/Audit-AzBackupProtectedItems.ps1) | Audits Recovery Services Vaults, evaluates backup health and job failures in the last 24h, and identifies unprotected virtual machines. | `Az.RecoveryServices`, `Az.Compute` |
-| [`Export-AzLogAnalyticsQueryAlerts.ps1`](MonitoringAndBackup/Export-AzLogAnalyticsQueryAlerts.ps1) | Catalogs KQL Scheduled Query Alert Rules across subscriptions and verifies action group health, flagging broken or orphaned receivers. | `Az.Monitor` |
+| [`Deploy-AzDiagnosticSettingsBaseline.ps1`](MonitoringAndBackup/Deploy-AzDiagnosticSettingsBaseline.ps1) | Configures diagnostic log streaming to Log Analytics across PaaS resources. | `Az.Monitor`, `Az.Resources` |
+| [`Audit-AzBackupProtectedItems.ps1`](MonitoringAndBackup/Audit-AzBackupProtectedItems.ps1) | Audits backup vault health, reviews recent job failures, and flags unprotected VMs. | `Az.RecoveryServices`, `Az.Compute` |
+| [`Export-AzLogAnalyticsQueryAlerts.ps1`](MonitoringAndBackup/Export-AzLogAnalyticsQueryAlerts.ps1) | Catalogs scheduled query alert rules and verifies linked action groups. | `Az.Monitor` |
 
-### 6. Storage & Database Management
+### 6. Storage and databases
 
-| Script | Description | Key Modules |
+Detailed documentation: [StorageAndDatabases/README.md](StorageAndDatabases/README.md)
+
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Audit-AzStorageAccountSecurity.ps1`](StorageAndDatabases/Audit-AzStorageAccountSecurity.ps1) | Assesses Storage Accounts against CIS benchmarks: TLS < 1.2, shared key access, network firewalls, public blob access, and soft delete. | `Az.Storage` |
-| [`Export-AzSqlDatabasePerformanceReport.ps1`](StorageAndDatabases/Export-AzSqlDatabasePerformanceReport.ps1) | Evaluates Azure SQL database storage headroom, CPU/DTU metric peaks, active geo-replication health, and TDE encryption status. | `Az.Sql`, `Az.Monitor` |
-| [`Clean-AzStorageBlobLifecycle.ps1`](StorageAndDatabases/Clean-AzStorageBlobLifecycle.ps1) | Scans containers for blobs inactive for 90+ days in Hot tier, projecting cost savings for transitions to Cool, Cold, or Archive. | `Az.Storage` |
+| [`Audit-AzStorageAccountSecurity.ps1`](StorageAndDatabases/Audit-AzStorageAccountSecurity.ps1) | Checks storage configurations for TLS 1.2, shared key status, firewalls, and soft delete. | `Az.Storage` |
+| [`Export-AzSqlDatabasePerformanceReport.ps1`](StorageAndDatabases/Export-AzSqlDatabasePerformanceReport.ps1) | Reviews database storage headroom, metric peaks, TDE status, and geo-replication. | `Az.Sql`, `Az.Monitor` |
+| [`Clean-AzStorageBlobLifecycle.ps1`](StorageAndDatabases/Clean-AzStorageBlobLifecycle.ps1) | Finds blobs unmodified for 90+ days and estimates savings for moving them to cool tier. | `Az.Storage` |
 
-### 7. Cloud Platform & Multi-Subscription Operations
+### 7. Platform operations
 
-| Script | Description | Key Modules |
+Detailed documentation: [PlatformOperations/README.md](PlatformOperations/README.md)
+
+| Script | Description | Key modules |
 | :--- | :--- | :--- |
-| [`Get-AzSubscriptionInventorySummary.ps1`](PlatformOperations/Get-AzSubscriptionInventorySummary.ps1) | High-speed multi-subscription inventory aggregation via `Search-AzGraph`, generating an executive posture dashboard with HTML export. | `Az.ResourceGraph` |
-| [`Manage-AzResourceLocksBulk.ps1`](PlatformOperations/Manage-AzResourceLocksBulk.ps1) | Audits, applies, or removes `CanNotDelete` and `ReadOnly` management locks across mission-critical resources based on tagging rules. | `Az.Resources` |
+| [`Get-AzSubscriptionInventorySummary.ps1`](PlatformOperations/Get-AzSubscriptionInventorySummary.ps1) | Summarizes resource distribution across regions and subscriptions via Resource Graph. | `Az.ResourceGraph` |
+| [`Manage-AzResourceLocksBulk.ps1`](PlatformOperations/Manage-AzResourceLocksBulk.ps1) | Audits, applies, or removes CanNotDelete and ReadOnly management locks in bulk. | `Az.Resources` |
 
----
+## Prerequisites and setup
 
-## Prerequisites & Installation
+### PowerShell version
+PowerShell 7 (Core) is recommended for best performance. Windows PowerShell 5.1 is also supported.
 
-### 1. PowerShell Version
-PowerShell 7.x (Core) is recommended for optimum performance and cross-platform support. Windows PowerShell 5.1 is also supported.
-
-### 2. Azure PowerShell Module (`Az`)
-Ensure the `Az` module is installed:
+### Az module installation
+Install the latest `Az` PowerShell module:
 ```powershell
 Install-Module -Name Az -Repository PSGallery -Force -AllowClobber
 ```
 
-### 3. Authentication
-Connect to your Azure tenant before running any script:
+### Authentication
+Authenticate with Azure before executing any script:
 ```powershell
-# Interactive login
 Connect-AzAccount
+```
 
-# Or login to a specific tenant
+To target a specific directory tenant:
+```powershell
 Connect-AzAccount -TenantId "00000000-0000-0000-0000-000000000000"
 ```
 
----
+## Quick start
 
-## Quick-Start Examples
-
-### Example 1: Discover All Orphaned Resources & Generate HTML Report
+Run an orphaned resource scan and export an HTML report:
 ```powershell
 .\CostOptimization\Find-AzOrphanedResources.ps1 -ExportHtmlPath "C:\Reports\OrphanedResources.html"
 ```
 
-### Example 2: Audit High-Risk NSG Inbound Ports
+Inspect inbound security rules on all network security groups:
 ```powershell
-.\SecurityAndGovernance\Audit-AzNetworkSecurityRules.ps1 -ExportCsvPath "C:\Reports\NSGRisks.csv"
+.\SecurityAndGovernance\Audit-AzNetworkSecurityRules.ps1 -ExportCsvPath "C:\Reports\NSGRules.csv"
 ```
 
-### Example 3: Test Cross-VNet Peering and Address Overlaps
+Run VM resize pre-checks in test mode:
 ```powershell
-.\Networking\Export-AzVNetPeeringMatrix.ps1 -CheckCidrOverlap -ExportCsvPath "C:\Reports\PeeringMatrix.csv"
+.\Compute\Resize-AzVmWithPreFlightChecks.ps1 -ResourceGroupName "rg-app-prod" -VmName "vm-web-01" -TargetSize "Standard_D4s_v5" -WhatIf
 ```
-
-### Example 4: Pre-Flight Check & Resize a Virtual Machine
-```powershell
-# Run pre-flight checks in simulation mode (-WhatIf)
-.\Compute\Resize-AzVmWithPreFlightChecks.ps1 -ResourceGroupName "rg-app-prod" -VmName "vm-app-01" -TargetSize "Standard_D4s_v5" -WhatIf
-```
-
-### Example 5: Generate an Executive Cloud Inventory Dashboard
-```powershell
-.\PlatformOperations\Get-AzSubscriptionInventorySummary.ps1 -ExportHtmlPath "C:\Reports\ExecutiveDashboard.html"
-```
-
----
 
 ## License
 
