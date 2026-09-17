@@ -1,0 +1,33 @@
+# PowerShell
+*.ps1xml
+*.log
+*.clixml
+*.psd1.temp
+*.psm1.temp
+
+# Output and report files
+*.csv
+*.html
+*.json
+!examples/*.json
+
+# Sensitive files / credentials
+*.cer
+*.crt
+*.pfx
+*.pem
+*.key
+*secret*
+*credential*
+*.env
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.bak
