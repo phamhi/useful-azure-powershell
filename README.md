@@ -160,6 +160,3 @@ Run VM resize pre-checks in test mode:
 .\Compute\Resize-AzVmWithPreFlightChecks.ps1 -ResourceGroupName "rg-app-prod" -VmName "vm-web-01" -TargetSize "Standard_D4s_v5" -WhatIf
 ```
 
-## License
-
-This project is licensed under the MIT License.
